@@ -5,7 +5,7 @@ declare interface Point {
 	y: number
 }
 
-type Method = (...args: MethodParams ) => P
+type Method = (...args: MethodParams) => P
 type MethodParams =
 	| [p: Partial<Point>]
 	| [a: StaticParam]
@@ -41,7 +41,7 @@ type StaticParamEnd<T> =
 export default class P {
 	#x: number = 0
 	#y: number = 0
-	#previous: Point = {x:0,y:0}
+	#previous: Point = { x: 0,y: 0 }
 	
 	constructor(...args: MethodParams) { this.set(...args) }
 
@@ -78,12 +78,12 @@ export default class P {
 	/** 
 	 * Sets the coordinates
 	 */
-	set(...[a,b]: MethodParams) {
+	set(...[a, b]: MethodParams) {
 		return this.#assign(
-			Array.isArray(a) ? [ a[0], a[1] ]
-			: typeof a === 'object' ? [ a.x, a.y ]
-			: typeof a === 'number' && typeof b === 'undefined' ? [ a, a ]
-			: [ a ?? this.x, b ?? this.y ]
+			Array.isArray(a) ? [a[0], a[1]]
+			: typeof a === 'object' ? [a.x, a.y]
+			: typeof a === 'number' && b === undefined ? [a, a ]
+			: [a ?? this.x, b ?? this.y]
 		)
 	}
 
@@ -95,48 +95,43 @@ export default class P {
 	/** 
 	 * Handles all assignments to x and y. Therefore, allowing previous to stand correct 
 	 */
-	#assign = ([x,y]: [x?:number,y?:number]) => {
+	#assign = ([x, y]: [x?: number, y?: number]) => {
 		this.#previous = this.value
-		typeof x !== 'undefined' && (this.#x = x)
-		typeof y !== 'undefined' && (this.#y = y)
+		x !== undefined && (this.#x = x)
+		y !== undefined && (this.#y = y)
 		return this
 	}
 
 	/** 
 	 * Executes a function on both x and y 
 	 */
-	#ops = (
-		func: (a:number)=>number
-	): [number,number] => [func(this.x),func(this.y)]
+	#ops = (func: (a: number) => number): [number, number] => [func(this.x), func(this.y)]
 
 	/** 
 	 * Composite of [**#assign**] and [**#ops**] 
 	 */
-	#asgOps = (
-		func: (a:number)=>number
-	): this => this.#assign(this.#ops(func))
+	#asgOps = (func: (a: number) => number): this => this.#assign(this.#ops(func))
 
 	/** 
 	 * Executes a function on both x and y, that takes two numbers as parameter.
 	 * The parameter being x resp. y, and second being a resp. b 
 	 */
 	#ABObs = <T>(
-		func: (a:number,b?:number)=>T,
-		x?:number,y?:number
-	): [T,T] => [func(this.x, x),func(this.y, y)]
+		func: (a: number,b?: number) => T,
+		x?: number, 
+		y?: number,
+	): [T, T] => [func(this.x, x), func(this.y, y)]
 	
 	/**
 	 * Guard for operations with MethodParams as the parameter.
 	 * Delegates in accordance with type and to [**#ABObs**]
 	 */
 	#guardedOps = <T>(
-		func: (a:number,b?: number)=>T, 
+		func: (a: number, b?: number) => T, 
 		...[a,b]: MethodParams
-	): [T,T] | undefined => 
-		Array.isArray(a) ? this.#ABObs<T>(func,...a)
-		: typeof a === 'object' ? this.#ABObs<T>(func,a.x,a.y)
-		: typeof a === 'number' && typeof b === 'undefined' ? this.#ABObs<T>(func,a,a)
-		: typeof a === 'number' && typeof b !== 'undefined' ? this.#ABObs<T>(func,a,b)
+	): [T, T] | undefined => 
+		typeof a === 'object' ? Array.isArray(a) ? this.#ABObs<T>(func, ...a) : this.#ABObs<T>(func, a.x, a.y)
+		: typeof a === 'number' ? b === undefined ? this.#ABObs<T>(func, a, a) : this.#ABObs<T>(func, a, b)
 		: undefined
 
 	/**
@@ -144,18 +139,18 @@ export default class P {
 	 * A composite of [**#assign**] and [**#guardedOps**]
 	 */
 	#arithOps = (
-		func: (a:number,b?:number)=>number,
+		func: (a: number, b?: number) => number,
 		...args: MethodParams
-	) => this.#assign(this.#guardedOps<number>(func,...args) ?? [this.x,this.y])
+	) => this.#assign(this.#guardedOps(func, ...args) ?? [this.x, this.y])
 
 	/**
 	 * Guarded boolean ops.
 	 * A composite of [**#guardedOps**]
 	 */
 	#checkOps = (
-		func: (a:number,b:number)=>boolean,
+		func: (a: number, b: number) => boolean,
 		...args: MethodParams
-	) => this.#guardedOps<boolean>((a,b)=>typeof b !== 'undefined'&&func(a,b),...args) ?? [false]
+	) => this.#guardedOps((a, b) => b !== undefined && func(a, b), ...args) ?? [ false ]
 
 /* 
 *	General Arithmetic Operations 
@@ -163,63 +158,63 @@ export default class P {
 	/** 
 	 * Adds a coordinate to the current
 	 */
-	add: Method = (...args) => this.#arithOps((a,b=0)=>a+b,...args)
+	add: Method = (...args) => this.#arithOps((a, b = 0) => a + b, ...args)
 
 	/** 
 	 * Subtracts a coordinate to the current
 	 */
-	sub: Method = (...args) => this.#arithOps((a,b=0)=>a-b,...args)
+	sub: Method = (...args) => this.#arithOps((a, b = 0) => a - b, ...args)
 
 	/**
 	 * Multiplies a coordinate to the current
 	 */
-	mult: Method = (...args) => this.#arithOps((a,b=1)=>a*b,...args)
+	mult: Method = (...args) => this.#arithOps((a, b = 1) => a * b, ...args)
 
 	/**
 	 * Divides a coordinate to the current
 	 */
-	div: Method = (...args) => this.#arithOps((a,b=1)=>a/b,...args)
+	div: Method = (...args) => this.#arithOps((a, b = 1) => a / b, ...args)
 
 	/**
 	 * Modulus a coordinate to the current
 	 */
-	mod: Method = (...args) => this.#arithOps((a,b=a)=>altMod(a,b),...args)
+	mod: Method = (...args) => this.#arithOps((a, b = a) => altMod(a,b), ...args)
 
 	/**
 	 * Powers a coordinate to the current
 	 */
-	pow: Method = (...args) => this.#arithOps((a,b=1)=>a**b,...args)
+	pow: Method = (...args) => this.#arithOps((a, b = 1) => a ** b,...args)
 
 
 	/**
 	 * Instantiates P with the first coordinate/parameter and adds by the remaining parameters
 	 */
-	static add: StaticMethod = (...[init,...args]) => args.reduce<P>((p,arg)=>p.add(arg), new P(init))
+	static add: StaticMethod = (...[init, ...args]) => args.reduce<P>((p, arg) => p.add(arg), new P(init))
 
 	/**
 	 * Instantiates P with the first coordinate/parameter and subtracts by the remaining parameters
 	 */
-	static sub: StaticMethod = (...[init,...args]) => args.reduce<P>((p,arg)=>p.sub(arg), new P(init))
+	static sub: StaticMethod = (...[init, ...args]) => args.reduce<P>((p, arg) => p.sub(arg), new P(init))
 
 	/**
 	 * Instantiates P with the first coordinate/parameter and multiplies by the remaining parameters
 	 */
-	static mult: StaticMethod = (...[init,...args]) => args.reduce<P>((p,arg)=>p.mult(arg), new P(init))
+	static mult: StaticMethod = (...[init, ...args]) => args.reduce<P>((p, arg) => p.mult(arg), new P(init))
 
 	/**
 	 * Instantiates P with the first coordinate/parameter and divides by the remaining parameters
 	 */
-	static div: StaticMethod = (...[init,...args]) => args.reduce<P>((p,arg)=>p.div(arg), new P(init))
+	static div: StaticMethod = (...[init, ...args]) => args.reduce<P>((p, arg) => p.div(arg), new P(init))
 
 	/**
 	 * Instantiates P with the first coordinate/parameter and modulus by the remaining parameters
 	 */
-	static mod: StaticMethod = (...[init,...args]) => args.reduce<P>((p,arg)=>p.mod(arg), new P(init))
+	static mod: StaticMethod = (...[init, ...args]) => args.reduce<P>((p, arg) => p.mod(arg), new P(init))
 
 	/**
 	 * Instantiates P with the first coordinate/parameter and powers by the remaining parameters
 	 */
-	static pow: StaticMethod = (...[init,...args]) => args.reduce<P>((p,arg)=>p.pow(arg), new P(init))
+	static pow: StaticMethod = (...[init, ...args]) => args.reduce<P>((p, arg) => p.pow(arg), new P(init))
 
 /* 
 *	Util Arithmetic Operations 
@@ -243,7 +238,7 @@ export default class P {
 	 * Sets each coordinate to a float, by removing the fractional digits bellow the provided number.
 	 * If no argument is provided, defaults to no fractional digits (integer)
 	 */
-	trunc = (numOfDec: number = 0) => this.#asgOps((a)=>altTrunc(a,numOfDec))
+	trunc = (numOfDec: number = 0) => this.#asgOps(a => altTrunc(a, numOfDec))
 
 
 /* 
@@ -252,22 +247,22 @@ export default class P {
 	/** 
 	 * Sets each coordinate to the square of the current
 	 */
-	sq = () => this.#asgOps(a=>a**2)
+	sq = () => this.#asgOps(a => a ** 2)
 
 	/** 
 	 * Sets each coordinate to the square root of the current
 	 */
-	sqrt = () => this.#asgOps(a=>a**(1/2))
+	sqrt = () => this.#asgOps(a => a ** (1 / 2))
 
 	/** 
 	 * Sets each coordinate to the cube of the current
 	 */
-	cb = () => this.#asgOps(a=>a**3)
+	cb = () => this.#asgOps(a => a ** 3)
 
 	/** 
 	 * Sets each coordinate to the cube root of the current
 	 */
-	cbrt = () => this.#asgOps(a=>a**(1/3))
+	cbrt = () => this.#asgOps(a => a ** (1 / 3))
 
 	/** 
 	 * Sets each coordinate to the absolute of the current
@@ -288,34 +283,34 @@ export default class P {
 	 * The first supplied parameter is the current coordinates and the second the provided 
 	 */
 	check = (
-		func: (a: number,b:number) => boolean, 
+		func: (a: number, b: number) => boolean, 
 		...args: MethodParams
-	): boolean[] => this.#checkOps(func,...args)
+	) => this.#checkOps(func, ...args)
 
 	/** 
 	 * Checks if *both* coordinates equals the provided parameters
 	 */
-	is = (...args: MethodParams) => this.#checkOps((a,b)=>a===b,...args).every(el=>el)
+	is = (...args: MethodParams) => this.#checkOps((a, b) => a === b, ...args).every(el => el)
 
 	/** 
 	 * Checks if *either* coordinate equals the provided parameters
 	 */
-	has = (...args: MethodParams) => this.#checkOps((a,b)=>a===b,...args).some(el=>el)
+	has = (...args: MethodParams) => this.#checkOps((a, b) => a === b, ...args).some(el => el)
 
 	/** 
 	 * Checks if the distance between two points is within a tolerance
 	 */
-	isClose = (...[arg, tolerance]: StaticParamEnd<number>) => this.getDistanceSq(arg) < (tolerance**2)
+	isClose = (...[arg, tolerance]: StaticParamEnd<number>) => this.getDistanceSq(arg) < (tolerance ** 2)
 
 	/** 
 	 * Checks if *both* coordinates are equal to zero
 	 */
-	isZero = () => !this.x&&!this.y
+	isZero = () => !this.x && !this.y
 
 	/** 
 	 * Checks if *either* coordinate are equal to zero
 	 */
-	hasZero = () => !this.x||!this.y
+	hasZero = () => !this.x || !this.y
 
 
 /* 
@@ -334,7 +329,7 @@ export default class P {
 	/**
 	 * Returns an object representation of the coordinates
 	 */
-	toObject = () => ({ x: this.x, y: this.y})
+	toObject = () => ({ x: this.x, y: this.y })
 
 
 /* 
@@ -343,7 +338,7 @@ export default class P {
 	/** 
 	 * Returns a copy of this
 	 */
-	clone = () => new P(this.x,this.y)
+	clone = () => new P(this.x, this.y)
 
 	/**
 	 * Sets the coordinates to 0
@@ -358,7 +353,7 @@ export default class P {
 	/**
 	 * Returns the sum of x and y
 	 */
-	getSum = () => this.x+this.y
+	getSum = () => this.x + this.y
 
 	/**
 	 * Returns distance of x and y, squared
@@ -368,7 +363,7 @@ export default class P {
 	/**
 	 * Returns distance of x and y
 	 */
-	getDistance = (...args: MethodParams) => compose(Math.sqrt,this.getDistanceSq)(...args)
+	getDistance = (...args: MethodParams) => compose(Math.sqrt, this.getDistanceSq)(...args)
 
 	/** 
 	 * Adds a coordinate (the first parameter) to the current, then multiplies it by the next arguments
@@ -379,23 +374,23 @@ export default class P {
 	 * Set each coordinates to a random integer, between two numbers.
 	 * If only one number is provided, defaults to between 0 and the number
 	 */
-	random = (...args: [a:number,b?:number]) => this.#arithOps(altRandom,args)
+	random = (...args: [a: number, b?: number]) => this.#arithOps(altRandom, args)
 
 	/**
 	 * Generates random point, with each coordinate being a random integer between two numbers
 	 * If only one number is provided, defaults to between 0 and the number
 	 */
-	static random = (...args: [a:number,b?:number]) => new P(altRandom(...args),altRandom(...args))
+	static random = (...args: [a: number, b?: number]) => new P(altRandom(...args), altRandom(...args))
 
 	/**
 	 * Return a point with the smallest x and y of the supplied arguments
 	 */
-	static min: StaticMethod = (...args) => new P(Math.min(...args.map(arg=>new P(arg).x)),Math.min(...args.map(arg=>new P(arg).y)))
+	static min: StaticMethod = (...args) => new P(Math.min(...args.map(arg => new P(arg).x)), Math.min(...args.map(arg => new P(arg).y)))
 
 	/**
 	 * Return a point with the largest x and y of the supplied arguments
 	 */
-	static max: StaticMethod = (...args) => new P(Math.max(...args.map(arg=>new P(arg).x)),Math.max(...args.map(arg=>new P(arg).y)))
+	static max: StaticMethod = (...args) => new P(Math.max(...args.map(arg => new P(arg).x)), Math.max(...args.map(arg => new P(arg).y)))
 
 	/**
 	 * Calls a defined callback function on each coordinate, and returns an array that contains the results.
@@ -405,5 +400,5 @@ export default class P {
 	/**
 	 * Calls a defined callback function on each coordinate
 	 */
-	forEach = <T>(callback: (value: number, index: number, array: number[]) => T): P => (this.toArray().forEach(callback),this)
+	forEach = <T>(callback: (value: number, index: number, array: number[]) => T): P => (this.toArray().forEach(callback), this)
 }
